@@ -1,0 +1,73 @@
+# LAMMPS script to implant Xe ion into nanodiamond.
+# I took this ref. as an starting point: https://www.nature.com/articles/s41598-018-23434-y
+# Alan B. de Oliveira <oliveira@ufop.edu.br>
+
+variable sr equal 15.0 # Diamond Sphere Radius
+
+# Some initial stuff
+
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+
+# Create a bulk diamond lattice
+lattice diamond 3.57  # Diamond cubic structure
+region box block -${sr} ${sr} -${sr} ${sr} -${sr} ${sr} units box
+
+# Create simulation box for two particle types
+create_box 2 box
+
+# Define a spherical nanodiamond region
+region nano_sphere sphere 0 0 0 ${sr} units box
+
+# Create atoms inside the spherical region
+create_atoms 1 region nano_sphere
+
+# Move box borders to get some room.
+change_box all x delta -20 50 y delta -20 20 z delta -20 20 units box
+
+# Create a single Xe (type 2) atom at (0,0,0).
+create_atoms 2 single 0 0 0
+
+# Atomic mass for C and Xe.
+mass 1 12.011
+mass 2 131.293
+
+# Group atoms
+group diamond type 1
+group ion type 2
+
+# Move Xe close to the x box border
+displace_atoms ion move 50 0 0 units box
+
+# Define interatomic potential (Tersoff ZBL and LJ)
+pair_style hybrid tersoff lj/cut 10.0
+pair_coeff * * tersoff SiC.tersoff.zbl C NULL # Tersoff for C-C. Ignores Xe.
+pair_coeff 1 2 lj/cut 0.0104 3.6 # LJ for C-Xe.
+pair_coeff 2 2 lj/cut 0 3.6 # No interaction for Xe-Xe (single atom).
+
+# Initial velocities for C atoms. 
+velocity diamond create 1800 4513 rot yes dist gaussian
+
+# A little dynamics to anneal the diamond sample
+thermo 1000
+timestep 0.001
+dump 1 all custom 1000 dump.lammpstrj id type x y z # Save snapshots to check 
+
+fix 2 diamond nvt temp 1800 1800 0.1 
+run 200000
+fix 2 diamond nvt temp 1800 298 0.1 
+run 200000
+
+unfix 2
+
+# Let's accelerate the Xe.
+velocity ion set -100.0 0 0
+
+timestep 0.000005
+
+fix 2 all nve
+
+run 200000
+
