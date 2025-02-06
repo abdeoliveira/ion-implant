@@ -1,5 +1,5 @@
 # LAMMPS script to implant Xe ion into nanodiamond.
-# I took this ref. as an starting point: https://www.nature.com/articles/s41598-018-23434-y
+# I took this ref. as a starting point: https://www.nature.com/articles/s41598-018-23434-y
 # Alan B. de Oliveira <oliveira@ufop.edu.br>
 
 variable sr equal 15.0 # Diamond Sphere Radius
